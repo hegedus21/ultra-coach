@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ULTRA COMMAND</title>
+    <style>
+        body { background: #000; color: #fff; font-family: sans-serif; text-align: center; margin: 0; padding: 20px; }
+        h1 { color: #0f0; font-size: 1.5em; }
+        button { 
+            background: #222; color: #0f0; border: 2px solid #0f0; 
+            padding: 20px; margin: 10px 0; width: 100%; font-weight: bold; font-size: 1.2em;
+            border-radius: 12px; cursor: pointer;
+        }
+        #help-btn { background: #f00; color: #fff; border: none; margin-top: 30px; }
+        .stat-container { display: flex; justify-content: space-around; margin: 20px 0; }
+        .stat { border: 1px solid #444; padding: 15px; width: 40%; border-radius: 8px; }
+        .huge { font-size: 2em; display: block; color: #0f0; }
+        #ai-response { background: #111; padding: 20px; margin-top: 20px; border: 1px dashed #0f0; min-height: 100px; text-align: left; font-style: italic; }
+    </style>
+</head>
+<body>
+
+    <div id="setup-screen">
+        <h1>ULTRA-ASSISTANT</h1>
+        <button onclick="startRace('linear')">ULTRABALATON</button>
+        <button onclick="startRace('loop')">OMSZKI (100k)</button>
+        <button onclick="startRace('backyard')">BACKYARD ULTRA</button>
+    </div>
+
+    <div id="main-dashboard" style="display:none;">
+        <h1 id="mode-display">RACE ACTIVE</h1>
+        <div class="stat-container">
+            <div class="stat"><span>KM / LAP</span><b class="huge" id="dist">0</b></div>
+            <div class="stat"><span>PACE</span><b class="huge" id="pace">--:--</b></div>
+        </div>
+        
+        <button onclick="logProgress()">FINISH LAP / MARK KM</button>
+        <button id="help-btn" onclick="askAI()">I WANT TO GIVE UP (GOGGINS)</button>
+        
+        <div id="ai-response">Coach is ready. Click the red button when it gets tough.</div>
+    </div>
+
+    <script>
+        let raceMode = '';
+        let count = 0;
+        const apiKey = "PASTE_YOUR_GOOGLE_AI_STUDIO_KEY_HERE"; // <--- PUT YOUR KEY HERE
+
+        function startRace(mode) {
+            raceMode = mode;
+            document.getElementById('setup-screen').style.display = 'none';
+            document.getElementById('main-dashboard').style.display = 'block';
+            document.getElementById('mode-display').innerText = mode.toUpperCase() + " ACTIVE";
+            speak("Assistant active. Let's make history.");
+        }
+
+        function logProgress() {
+            count++;
+            document.getElementById('dist').innerText = count;
+            speak(count + (raceMode === 'backyard' ? " laps done." : " kilometers done."));
+        }
+
+        async function askAI() {
+            if (apiKey === "PASTE_YOUR_GOOGLE_AI_STUDIO_KEY_HERE") {
+                alert("Please add your API Key in the code first!");
+                return;
+            }
+            
+            document.getElementById('ai-response').innerText = "Connecting to Command Center...";
+            
+            const prompt = `I am running an ultramarathon (${raceMode}). I am at ${count} units. I'm exhausted and want to quit. Give me tactical advice and a David Goggins style shout.`;
+
+            try {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                const text = data.candidates[0].content.parts[0].text;
+                document.getElementById('ai-response').innerText = text;
+                speak(text);
+            } catch (e) {
+                document.getElementById('ai-response').innerText = "Error: " + e;
+            }
+        }
+
+        function speak(text) {
+            const msg = new SpeechSynthesisUtterance(text);
+            msg.lang = 'en-US';
+            window.speechSynthesis.speak(msg);
+        }
+    </script>
+</body>
+</html>
