@@ -6,135 +6,104 @@
     <title>ULTRA COMMAND PRO</title>
     <style>
         :root { --neon-green: #0f0; --danger-red: #f00; --dark-grey: #1a1a1a; }
-        body { background: #000; color: #fff; font-family: 'Courier New', monospace; text-align: center; margin: 0; padding: 15px; overflow-x: hidden; }
-        h1 { color: var(--neon-green); font-size: 1.2em; text-transform: uppercase; letter-spacing: 2px; }
-        
+        body { background: #000; color: #fff; font-family: 'Courier New', monospace; text-align: center; margin: 0; padding: 15px; }
         .card { background: var(--dark-grey); border: 1px solid #333; border-radius: 15px; padding: 15px; margin-bottom: 15px; }
-        .huge { font-size: 3em; color: var(--neon-green); font-weight: bold; line-height: 1; }
-        .label { font-size: 0.8em; color: #aaa; text-transform: uppercase; }
-
-        button { 
-            background: #222; color: var(--neon-green); border: 2px solid var(--neon-green); 
-            padding: 20px; margin: 10px 0; width: 100%; font-weight: bold; font-size: 1.3em;
-            border-radius: 15px; cursor: pointer; -webkit-tap-highlight-color: transparent;
-        }
-        button:active { background: var(--neon-green); color: #000; }
-        
-        #help-btn { background: var(--danger-red); color: #fff; border: none; font-size: 1.5em; animation: pulse 2s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
-
-        #ai-response { background: #080808; padding: 20px; border-left: 4px solid var(--neon-green); text-align: left; font-size: 1.1em; line-height: 1.4; min-height: 80px; margin-top: 10px; }
-        .timer-warning { color: var(--danger-red); font-weight: bold; }
+        .huge { font-size: 3em; color: var(--neon-green); font-weight: bold; }
+        button { background: #222; color: var(--neon-green); border: 2px solid var(--neon-green); padding: 20px; margin: 10px 0; width: 100%; font-weight: bold; font-size: 1.3em; border-radius: 15px; }
+        #help-btn { background: var(--danger-red); color: #fff; border: none; font-size: 1.5em; }
+        input { background: #222; color: #fff; border: 1px solid #555; padding: 10px; width: 80%; margin: 10px 0; font-size: 1em; }
     </style>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1>System Initialized</h1>
-        <button onclick="startRace('linear')">NN ULTRABALATON</button>
-        <button onclick="startRace('loop')">OMSZKI 100K</button>
-        <button onclick="startRace('backyard')">BACKYARD ULTRA</button>
+        <h1>System Security</h1>
+        <div id="key-section" class="card">
+            <p style="font-size: 0.8em;">API Key not found. Enter it below (Stored locally on your phone only):</p>
+            <input type="password" id="api-key-input" placeholder="Paste Gemini API Key Here">
+            <button onclick="saveKey()" style="padding: 10px; font-size: 1em;">Save to Phone Vault</button>
+        </div>
+        
+        <div id="mode-selection" style="display:none;">
+            <h1>Select Mission</h1>
+            <button onclick="startRace('linear')">NN ULTRABALATON</button>
+            <button onclick="startRace('loop')">OMSZKI 100K</button>
+            <button onclick="startRace('backyard')">BACKYARD ULTRA</button>
+            <button onclick="clearKey()" style="border-color: #555; font-size: 0.7em;">Reset API Key</button>
+        </div>
     </div>
 
     <div id="main-dashboard" style="display:none;">
         <h1 id="mode-display">TRACKING ACTIVE</h1>
-        
         <div class="card">
-            <span id="dist-label" class="label">PROGRESS</span>
             <div id="dist" class="huge">0.0</div>
-            <span id="unit-label">KM</span>
+            <span id="unit-label">KILOMETERS</span>
         </div>
-
         <div class="card" id="pace-card">
-            <span class="label">AVG PACE (Last Hour)</span>
             <div id="pace" class="huge">--:--</div>
+            <span class="label">AVG PACE</span>
         </div>
-
         <div class="card" id="backyard-card" style="display:none;">
-            <span class="label">TIME TO NEXT CORRAL</span>
             <div id="backyard-timer" class="huge" style="color: var(--danger-red);">60:00</div>
         </div>
-
-        <button onclick="logProgress()">MARK KM / FINISH LAP</button>
-        
-        <div id="ai-response">READY FOR ORDERS</div>
-
+        <button onclick="logProgress()">MARK PROGRESS</button>
+        <div id="ai-response" style="min-height: 50px; padding: 10px; border: 1px solid #333;">...</div>
         <button id="help-btn" onclick="askAI('crisis')">HELP ME / GOGGINS</button>
-        <button style="border-color: #555; font-size: 0.9em;" onclick="location.reload()">RESTART SYSTEM</button>
     </div>
 
     <script>
         let raceMode = '';
         let count = 0;
-        let startTime = null;
         let lastLogTime = null;
         let backyardInterval = null;
-        const apiKey = "PASTE_YOUR_GOOGLE_AI_STUDIO_KEY_HERE"; // <--- PUT YOUR KEY HERE
 
-        // UB Checkpoints
-        const ubStations = [
-            {km: 39.5, name: "Badacsonyörs", task: "Drop bag 1: Eat soup, check feet."},
-            {km: 73.6, name: "Keszthely", task: "Major Stop: Change socks, refresh ISO."},
-            {km: 135.1, name: "Balatonföldvár", task: "Night Prep: Headlamp, powerbank swap."},
-            {km: 177.3, name: "Balatonkenese", task: "Final Push: Caffeine, warm clothes."}
-        ];
+        // Check for key on load
+        window.onload = function() {
+            if(localStorage.getItem('gemini_api_key')) {
+                document.getElementById('key-section').style.display = 'none';
+                document.getElementById('mode-selection').style.display = 'block';
+            }
+        };
+
+        function saveKey() {
+            const key = document.getElementById('api-key-input').value;
+            if(key.length > 10) {
+                localStorage.setItem('gemini_api_key', key);
+                document.getElementById('key-section').style.display = 'none';
+                document.getElementById('mode-selection').style.display = 'block';
+                alert("Key saved locally!");
+            }
+        }
+
+        function clearKey() {
+            localStorage.removeItem('gemini_api_key');
+            location.reload();
+        }
 
         function startRace(mode) {
             raceMode = mode;
-            startTime = new Date();
             lastLogTime = new Date();
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('main-dashboard').style.display = 'block';
-            document.getElementById('mode-display').innerText = mode.toUpperCase();
-
             if(mode === 'backyard') {
                 document.getElementById('backyard-card').style.display = 'block';
                 document.getElementById('pace-card').style.display = 'none';
-                document.getElementById('dist-label').innerText = "LAPS";
                 document.getElementById('unit-label').innerText = "LAPS DONE";
                 startBackyardTimer();
             }
-
-            speak("System online. Pacing and nutrition strategy loaded. Stay relentless.");
-            
-            // Nutrition Reminders
-            setInterval(() => speak("Reminder: Drink 200ml of ISO or Water now."), 20 * 60 * 1000); // 20 mins
-            setInterval(() => speak("Nutrition Alert: Eat 40 grams of carbs and take salt."), 45 * 60 * 1000); // 45 mins
-        }
-
-        function startBackyardTimer() {
-            let seconds = 3600;
-            if(backyardInterval) clearInterval(backyardInterval);
-            backyardInterval = setInterval(() => {
-                seconds--;
-                let m = Math.floor(seconds / 60);
-                let s = seconds % 60;
-                document.getElementById('backyard-timer').innerText = `${m}:${s < 10 ? '0'+s : s}`;
-                if(seconds === 300) speak("Five minutes to corral. Get ready.");
-                if(seconds === 0) { seconds = 3600; speak("New lap starting now. Go!"); }
-            }, 1000);
+            speak("System online.");
         }
 
         function logProgress() {
             count++;
             let now = new Date();
-            let diff = (now - lastLogTime) / 1000 / 60; // minutes
+            let diff = (now - lastLogTime) / 1000 / 60;
             lastLogTime = now;
-
             document.getElementById('dist').innerText = count;
-
             if(raceMode !== 'backyard') {
-                // Calculate Pace
-                let paceMin = diff.toFixed(2);
                 document.getElementById('pace').innerText = formatPace(diff);
-                checkUBStations();
-            } else {
-                // Backyard Logic
-                let finishTime = Math.round(diff);
-                askAI(`finished lap in ${finishTime} minutes`);
             }
-            
-            speak(count + " complete.");
+            speak(count + " done.");
         }
 
         function formatPace(decimalMin) {
@@ -143,24 +112,24 @@
             return `${mins}:${secs < 10 ? '0'+secs : secs}`;
         }
 
-        function checkUBStations() {
-            ubStations.forEach(s => {
-                if(count == Math.floor(s.km)) {
-                    speak(`Approaching ${s.name}. ${s.task}`);
-                }
-            });
+        function startBackyardTimer() {
+            let seconds = 3600;
+            backyardInterval = setInterval(() => {
+                seconds--;
+                let m = Math.floor(seconds / 60);
+                let s = seconds % 60;
+                document.getElementById('backyard-timer').innerText = `${m}:${s < 10 ? '0'+s : s}`;
+            }, 1000);
         }
 
-        async function askAI(customContext = "generic") {
-            const currentPace = document.getElementById('pace').innerText;
-            document.getElementById('ai-response').innerText = "TRANSMITTING TO GOGGINS...";
+        async function askAI(context) {
+            const key = localStorage.getItem('gemini_api_key');
+            document.getElementById('ai-response').innerText = "TRANSMITTING...";
             
-            let prompt = `I am running an ultramarathon (${raceMode}). Total progress: ${count}. Last lap/km pace: ${currentPace}. `;
-            if(customContext === 'crisis') prompt += "I am suffering, legs are dead, and I want to quit. Be ruthless but helpful.";
-            else prompt += `Specific update: ${customContext}. Give me tactical advice (nutrition/recovery) and a Goggins shout.`;
+            const prompt = `I am running an ultramarathon (${raceMode}). Progress: ${count}. I am exhausted. Give tactical advice and a David Goggins shout.`;
 
             try {
-                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=${apiKey}`, {
+                const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
@@ -170,14 +139,13 @@
                 document.getElementById('ai-response').innerText = text;
                 speak(text);
             } catch (e) {
-                document.getElementById('ai-response').innerText = "Signal Lost. Keep moving anyway.";
+                document.getElementById('ai-response').innerText = "API Error. Check your key.";
             }
         }
 
         function speak(text) {
             const msg = new SpeechSynthesisUtterance(text);
             msg.lang = 'en-US';
-            msg.rate = 0.9; // Slightly slower for clarity
             window.speechSynthesis.speak(msg);
         }
     </script>
