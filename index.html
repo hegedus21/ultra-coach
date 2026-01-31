@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ULTRA COMMAND 4.3 - DEBUG</title>
+    <title>ULTRA COMMAND 4.4 - QUOTA GUARD</title>
     <style>
         :root { --neon: #0f0; --danger: #f00; --bg: #000; --card: #111; }
         body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding: 10px; }
@@ -13,7 +13,7 @@
         button { background: #222; color: var(--neon); border: 2px solid var(--neon); padding: 18px; width: 100%; font-weight: bold; font-size: 1.2em; border-radius: 15px; margin-top: 10px; cursor: pointer; }
         input { background: #000; color: #fff; border: 1px solid var(--neon); padding: 12px; width: 85%; font-size: 1em; border-radius: 10px; margin-bottom: 10px; outline: none; }
         #ai-response { background: #080808; padding: 15px; border-left: 5px solid var(--neon); text-align: left; font-size: 0.95em; margin-top: 10px; border-radius: 0 15px 15px 0; min-height: 50px; }
-        #debug-box { color: #f00; font-size: 0.7em; margin-top: 10px; background: #200; padding: 5px; display: none; }
+        #cooldown-msg { font-size: 0.6em; color: #f00; display: none; margin-top: 5px; }
     </style>
 </head>
 <body>
@@ -21,7 +21,7 @@
     <div id="setup-screen">
         <h1 style="color: var(--neon)">ULTRA COMMAND</h1>
         <div class="card">
-            <p class="label">Péter's API Key</p>
+            <p class="label">Péter's NEW Key (Private)</p>
             <input type="password" id="api-key-input">
             <p class="label">Race Start</p>
             <input type="datetime-local" id="race-start-input">
@@ -36,26 +36,27 @@
     </div>
 
     <div id="main-dashboard" style="display:none;">
-        <div class="card">
+        <div class="card" onclick="adjustKm()">
             <span class="label">DISTANCE</span>
-            <div id="dist-display" class="huge" onclick="adjustKm()">0.0</div>
-            <span class="label">TAP TO INCREASE KM</span>
+            <div id="dist-display" class="huge">0.0</div>
+            <span class="label">TAP TO ADD 1 KM</span>
         </div>
 
         <div class="card">
-            <span class="label">CURRENT PACE</span>
-            <div id="avg-pace-display" style="font-size: 2em; color: var(--neon);">--:--</div>
-            <div id="elapsed-display" style="font-size: 0.8em; color: #666;">Elapsed: 00:00</div>
+            <span class="label">ELAPSED TIME</span>
+            <div id="elapsed-display" style="font-size: 2em; color: var(--neon);">0h 0m</div>
+            <div id="avg-pace-display" style="font-size: 1em; color: #888;">Avg Pace: --:--</div>
         </div>
 
-        <button onclick="askAI()" style="background:var(--danger); color:white; border:none;">HELP ME / GOGGINS</button>
+        <button id="goggins-btn" onclick="askAI()" style="background:var(--danger); color:white; border:none;">HELP ME / GOGGINS</button>
+        <div id="cooldown-msg">Cooldown active... wait 30s</div>
         
         <div id="ai-response">READY PÉTER.</div>
-        <div id="debug-box"></div>
     </div>
 
     <script>
         let currentKm = 0;
+        let isThrottled = false;
 
         window.onload = () => {
             if(localStorage.getItem('ultra_key_peter')) {
@@ -80,7 +81,7 @@
         function startRace() {
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('main-dashboard').style.display = 'block';
-            setInterval(updateStats, 10000); // Auto-update stats every 10s
+            setInterval(updateStats, 10000);
             updateStats();
         }
 
@@ -91,58 +92,60 @@
         }
 
         function updateStats() {
-            const now = new Date();
             const start = new Date(localStorage.getItem('ultra_start'));
-            const elapsedMins = (now - start) / 60000;
-            
+            const elapsedMins = (new Date() - start) / 60000;
             if (elapsedMins > 0) {
                 const h = Math.floor(elapsedMins / 60);
                 const m = Math.floor(elapsedMins % 60);
-                document.getElementById('elapsed-display').innerText = `Elapsed: ${h}h ${m}m`;
-                
+                document.getElementById('elapsed-display').innerText = `${h}h ${m}m`;
                 if (currentKm > 0) {
                     const pace = elapsedMins / currentKm;
                     const pm = Math.floor(pace);
                     const ps = Math.round((pace - pm) * 60);
-                    document.getElementById('avg-pace-display').innerText = `${pm}:${ps < 10 ? '0'+ps : ps}`;
+                    document.getElementById('avg-pace-display').innerText = `Avg Pace: ${pm}:${ps < 10 ? '0'+ps : ps}`;
                 }
             }
         }
 
         async function askAI() {
+            if (isThrottled) return;
             const key = localStorage.getItem('ultra_key_peter');
             const resp = document.getElementById('ai-response');
-            const debug = document.getElementById('debug-box');
+            const btn = document.getElementById('goggins-btn');
+            
             resp.innerText = "CONNECTING...";
-            debug.style.display = "none";
+            
+            // COOLDOWN LOGIC (Prevents quota waste)
+            isThrottled = true;
+            btn.style.opacity = "0.3";
+            document.getElementById('cooldown-msg').style.display = "block";
+            setTimeout(() => { 
+                isThrottled = false; 
+                btn.style.opacity = "1";
+                document.getElementById('cooldown-msg').style.display = "none";
+            }, 30000);
 
-            // Try the two most common model endpoints
-            const models = ["gemini-1.5-flash", "gemini-2.0-flash"];
-            let success = false;
-
-            for (let model of models) {
-                if (success) break;
-                try {
-                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: `I am Peter. Km ${currentKm}. Give tactical advice and a David Goggins quote. Max 40 words.` }] }] })
-                    });
-                    
-                    const d = await r.json();
-                    if (r.ok) {
-                        resp.innerText = d.candidates[0].content.parts[0].text;
-                        const msg = new SpeechSynthesisUtterance(resp.innerText);
-                        window.speechSynthesis.speak(msg);
-                        success = true;
-                    } else {
-                        debug.style.display = "block";
-                        debug.innerText = `Error (${model}): ${d.error.message}`;
-                    }
-                } catch (e) {
-                    debug.style.display = "block";
-                    debug.innerText = "Network failed.";
+            try {
+                // Try Gemini 1.5 Flash (Most stable free tier)
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: `I am Péter. Ultrabalaton km ${currentKm}. Give 1 tactical advice and 1 Goggins quote. Be extremely concise. Max 30 words.` }] }]
+                    })
+                });
+                
+                const d = await r.json();
+                if (r.ok) {
+                    const txt = d.candidates[0].content.parts[0].text;
+                    resp.innerText = txt;
+                    const msg = new SpeechSynthesisUtterance(txt);
+                    window.speechSynthesis.speak(msg);
+                } else {
+                    resp.innerText = "Quota Error. Wait 1 min or check key.";
                 }
+            } catch (e) {
+                resp.innerText = "Network Error.";
             }
         }
     </script>
