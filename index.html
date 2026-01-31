@@ -125,7 +125,7 @@
                 if (success) break;
                 
                 const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${key}`;
-                const prompt = `I am Norbert running ${raceMode}. km/lap: ${count}. Give 1 tactical ultra advice and a David Goggins quote. Max 40 words.`;
+                const prompt = `I am Peter running ${raceMode}. km/lap: ${count}. Give 1 tactical ultra advice and a David Goggins quote. Max 40 words.`;
 
                 try {
                     const r = await fetch(url, {
