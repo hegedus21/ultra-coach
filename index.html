@@ -3,93 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>ULTRA COMMAND 4.2 - UNIVERSAL</title>
+    <title>ULTRA COMMAND 4.3 - DEBUG</title>
     <style>
-        :root { --neon: #0f0; --danger: #f00; --bg: #000; --card: #111; --gold: #ffd700; }
+        :root { --neon: #0f0; --danger: #f00; --bg: #000; --card: #111; }
         body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding: 10px; }
         .card { background: var(--card); border: 1px solid #333; border-radius: 20px; padding: 15px; margin-bottom: 10px; }
         .huge { font-size: 3.2em; color: var(--neon); font-weight: 900; letter-spacing: -2px; }
-        .label { font-size: 0.7em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
-        .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 10px; }
-        .plan-box { border: 1px solid #444; padding: 10px; border-radius: 10px; font-size: 0.75em; }
-        .plan-A { border-color: var(--gold); }
-        .req-pace { font-size: 1.3em; color: var(--neon); font-weight: bold; display: block; }
-        
+        .label { font-size: 0.7em; color: #888; text-transform: uppercase; }
         button { background: #222; color: var(--neon); border: 2px solid var(--neon); padding: 18px; width: 100%; font-weight: bold; font-size: 1.2em; border-radius: 15px; margin-top: 10px; cursor: pointer; }
-        .btn-update { background: var(--neon); color: #000; border: none; }
-        
-        input, select { background: #000; color: #fff; border: 1px solid var(--neon); padding: 12px; width: 85%; font-size: 1em; border-radius: 10px; margin-bottom: 10px; outline: none; }
+        input { background: #000; color: #fff; border: 1px solid var(--neon); padding: 12px; width: 85%; font-size: 1em; border-radius: 10px; margin-bottom: 10px; outline: none; }
         #ai-response { background: #080808; padding: 15px; border-left: 5px solid var(--neon); text-align: left; font-size: 0.95em; margin-top: 10px; border-radius: 0 15px 15px 0; min-height: 50px; }
-        #sys-log { font-size: 0.6em; color: #444; margin-top: 10px; text-align: left; }
+        #debug-box { color: #f00; font-size: 0.7em; margin-top: 10px; background: #200; padding: 5px; display: none; }
     </style>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1 style="color: var(--neon); letter-spacing: 2px;">ULTRA COMMAND</h1>
-        
-        <div id="config-section" class="card">
-            <p class="label">1. Security (API Key)</p>
-            <input type="password" id="api-key-input" placeholder="Paste Gemini Key">
-            
-            <p class="label" style="margin-top:15px;">2. Race Logistics</p>
+        <h1 style="color: var(--neon)">ULTRA COMMAND</h1>
+        <div class="card">
+            <p class="label">Péter's API Key</p>
+            <input type="password" id="api-key-input">
+            <p class="label">Race Start</p>
             <input type="datetime-local" id="race-start-input">
-            
-            <p class="label" style="margin-top:15px;">3. Target Distance (km)</p>
+            <p class="label">Target Distance (km)</p>
             <input type="number" id="race-dist-input" value="211">
-            
-            <button onclick="saveSettings()">SAVE & ACTIVATE</button>
+            <button onclick="saveSettings()">SAVE SETTINGS</button>
         </div>
-        
-        <div id="mode-selection" style="display:none;">
-            <p class="label">Target: <span id="target-info"></span></p>
-            <button onclick="startRace('linear')">START LINEAR TRACKING</button>
-            <button onclick="startRace('backyard')">START BACKYARD (60m)</button>
-            <p onclick="clearSettings()" style="color:#444; margin-top:30px; font-size:0.7em;">[ RESET CONFIG ]</p>
+        <div id="mode-selection" style="display:none; padding: 20px;">
+            <button onclick="startRace()">START MISSION</button>
+            <p onclick="clearSettings()" style="color:#444; margin-top:20px;">[ RESET ALL ]</p>
         </div>
     </div>
 
     <div id="main-dashboard" style="display:none;">
         <div class="card">
-            <span class="label">PROGRESS</span>
-            <div id="dist-display" class="huge">0.0</div>
-            <span class="label">KILOMETERS</span>
+            <span class="label">DISTANCE</span>
+            <div id="dist-display" class="huge" onclick="adjustKm()">0.0</div>
+            <span class="label">TAP TO INCREASE KM</span>
         </div>
 
         <div class="card">
-            <span class="label">CURRENT AVG PACE</span>
+            <span class="label">CURRENT PACE</span>
             <div id="avg-pace-display" style="font-size: 2em; color: var(--neon);">--:--</div>
-            <div id="elapsed-display" style="font-size: 0.8em; color: #666; margin-top:5px;">Elapsed: 00:00</div>
+            <div id="elapsed-display" style="font-size: 0.8em; color: #666;">Elapsed: 00:00</div>
         </div>
 
-        <div class="card">
-            <span class="label">PACE NEEDED TO FINISH</span>
-            <div class="strategy-grid">
-                <div class="plan-box plan-A"><span class="label">Plan A</span><span class="req-pace" id="req-A">--:--</span></div>
-                <div class="plan-box"><span class="label">Plan B</span><span class="req-pace" id="req-B">--:--</span></div>
-                <div class="plan-box"><span class="label">Plan C</span><span class="req-pace" id="req-C">--:--</span></div>
-            </div>
-        </div>
-
-        <button class="btn-update" onclick="updateSnapshot()">REFRESH SNAPSHOT</button>
-        <button style="background:var(--danger); color:white; border:none; margin-top:10px; padding: 10px;" onclick="askAI('crisis')">GOGGINS / HELP</button>
+        <button onclick="askAI()" style="background:var(--danger); color:white; border:none;">HELP ME / GOGGINS</button>
         
         <div id="ai-response">READY PÉTER.</div>
-        <div id="sys-log">System: Monitoring...</div>
+        <div id="debug-box"></div>
     </div>
 
     <script>
-        let raceMode = '';
         let currentKm = 0;
 
-        // 1. SETTINGS MANAGEMENT
         window.onload = () => {
             if(localStorage.getItem('ultra_key_peter')) {
-                document.getElementById('config-section').style.display = 'none';
+                document.getElementById('setup-screen').querySelector('.card').style.display = 'none';
                 document.getElementById('mode-selection').style.display = 'block';
-                const d = localStorage.getItem('ultra_dist');
-                const s = localStorage.getItem('ultra_start');
-                document.getElementById('target-info').innerText = `${d}km | Start: ${s.replace('T', ' ')}`;
             }
         };
 
@@ -97,9 +68,7 @@
             const k = document.getElementById('api-key-input').value.trim();
             const s = document.getElementById('race-start-input').value;
             const d = document.getElementById('race-dist-input').value;
-            
-            if(!k || !s || !d) { alert("Please fill all fields!"); return; }
-            
+            if(!k || !s || !d) return alert("Fill all fields");
             localStorage.setItem('ultra_key_peter', k);
             localStorage.setItem('ultra_start', s);
             localStorage.setItem('ultra_dist', d);
@@ -108,102 +77,74 @@
 
         function clearSettings() { localStorage.clear(); location.reload(); }
 
-        // 2. MISSION LOGIC
-        function startRace(m) {
-            raceMode = m;
+        function startRace() {
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('main-dashboard').style.display = 'block';
-            updateSnapshot();
-            speak("Strategic tracking initialized. Good luck Péter.");
+            setInterval(updateStats, 10000); // Auto-update stats every 10s
+            updateStats();
         }
 
-        function updateSnapshot() {
-            navigator.geolocation.getCurrentPosition((pos) => {
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                
-                // For this version, we use distance from start or manual override
-                // Since landmarks vary by race, we'll ask the AI to identify location
-                // based on GPS, but display a simple manual adjust for KM.
-                calculateStats();
-                speak("Data refreshed, Péter.");
-            });
-        }
-
-        function calculateStats() {
-            const now = new Date();
-            const start = new Date(localStorage.getItem('ultra_start'));
-            const totalTargetDist = parseFloat(localStorage.getItem('ultra_dist'));
-            
-            const elapsedMs = now - start;
-            const elapsedHrs = elapsedMs / (1000 * 60 * 60);
-            
-            // Display Elapsed
-            const h = Math.floor(elapsedHrs);
-            const m = Math.floor((elapsedHrs - h) * 60);
-            document.getElementById('elapsed-display').innerText = `Elapsed Time: ${h}h ${m}m`;
-
-            // Average Pace
-            if (currentKm > 0 && elapsedHrs > 0) {
-                const totalMins = elapsedHrs * 60;
-                const avgPace = totalMins / currentKm;
-                document.getElementById('avg-pace-display').innerText = formatPace(avgPace);
-            }
-
-            // Pacing Strategy
-            const remainingKm = totalTargetDist - currentKm;
-            document.getElementById('req-A').innerText = calcReq(24, elapsedHrs, remainingKm);
-            document.getElementById('req-B').innerText = calcReq(27, elapsedHrs, remainingKm);
-            document.getElementById('req-C').innerText = calcReq(31, elapsedHrs, remainingKm);
-        }
-
-        function calcReq(targetTotalHrs, elapsedHrs, remainingKm) {
-            const remainingHrs = targetTotalHrs - elapsedHrs;
-            if (remainingHrs <= 0) return "---";
-            const mins = (remainingHrs * 60) / remainingKm;
-            return formatPace(mins);
-        }
-
-        function formatPace(mins) {
-            if (mins <= 0 || mins > 30) return "--:--";
-            const m = Math.floor(mins);
-            const s = Math.round((mins - m) * 60);
-            return `${m}:${s < 10 ? '0'+s : s}`;
-        }
-
-        // 3. AI INTEGRATION
-        async function askAI(ctx) {
-            const key = localStorage.getItem('ultra_key_peter');
-            const resp = document.getElementById('ai-response');
-            resp.innerText = "COMMAND IS ANALYZING...";
-            
-            const prompt = `I am Péter. I am running an ultra. Distance: ${currentKm}km. Elapsed: ${document.getElementById('elapsed-display').innerText}. Give 1 tactical tip and a ruthless David Goggins quote using my name. Max 40 words.`;
-
-            try {
-                const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
-                    method: "POST", headers: {"Content-Type": "application/json"},
-                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                });
-                const d = await r.json();
-                const txt = d.candidates[0].content.parts[0].text;
-                resp.innerText = txt;
-                speak(txt);
-            } catch (e) { resp.innerText = "Connection Error."; }
-        }
-
-        function speak(t) {
-            window.speechSynthesis.cancel();
-            const m = new SpeechSynthesisUtterance(t);
-            m.lang = 'en-US'; m.rate = 0.95;
-            window.speechSynthesis.speak(m);
-        }
-
-        // Simple Distance Adjustment (Tap display to increase)
-        document.getElementById('dist-display').onclick = () => {
+        function adjustKm() {
             currentKm += 1;
             document.getElementById('dist-display').innerText = currentKm.toFixed(1);
-            calculateStats();
-        };
+            updateStats();
+        }
+
+        function updateStats() {
+            const now = new Date();
+            const start = new Date(localStorage.getItem('ultra_start'));
+            const elapsedMins = (now - start) / 60000;
+            
+            if (elapsedMins > 0) {
+                const h = Math.floor(elapsedMins / 60);
+                const m = Math.floor(elapsedMins % 60);
+                document.getElementById('elapsed-display').innerText = `Elapsed: ${h}h ${m}m`;
+                
+                if (currentKm > 0) {
+                    const pace = elapsedMins / currentKm;
+                    const pm = Math.floor(pace);
+                    const ps = Math.round((pace - pm) * 60);
+                    document.getElementById('avg-pace-display').innerText = `${pm}:${ps < 10 ? '0'+ps : ps}`;
+                }
+            }
+        }
+
+        async function askAI() {
+            const key = localStorage.getItem('ultra_key_peter');
+            const resp = document.getElementById('ai-response');
+            const debug = document.getElementById('debug-box');
+            resp.innerText = "CONNECTING...";
+            debug.style.display = "none";
+
+            // Try the two most common model endpoints
+            const models = ["gemini-1.5-flash", "gemini-2.0-flash"];
+            let success = false;
+
+            for (let model of models) {
+                if (success) break;
+                try {
+                    const r = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+                        method: "POST",
+                        headers: {"Content-Type": "application/json"},
+                        body: JSON.stringify({ contents: [{ parts: [{ text: `I am Peter. Km ${currentKm}. Give tactical advice and a David Goggins quote. Max 40 words.` }] }] })
+                    });
+                    
+                    const d = await r.json();
+                    if (r.ok) {
+                        resp.innerText = d.candidates[0].content.parts[0].text;
+                        const msg = new SpeechSynthesisUtterance(resp.innerText);
+                        window.speechSynthesis.speak(msg);
+                        success = true;
+                    } else {
+                        debug.style.display = "block";
+                        debug.innerText = `Error (${model}): ${d.error.message}`;
+                    }
+                } catch (e) {
+                    debug.style.display = "block";
+                    debug.innerText = "Network failed.";
+                }
+            }
+        }
     </script>
 </body>
 </html>
