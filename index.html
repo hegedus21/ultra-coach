@@ -3,68 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <title>ULTRA COMMAND 2.6</title>
+    <title>ULTRA COMMAND 4.1 - STRATEGIC</title>
     <style>
-        :root { --neon: #0f0; --danger: #f00; --bg: #000; --card: #111; }
-        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding: 15px; }
-        .card { background: var(--card); border: 1px solid #333; border-radius: 20px; padding: 20px; margin-bottom: 15px; }
-        .huge { font-size: 3.5em; color: var(--neon); font-weight: 900; letter-spacing: -2px; }
-        .label { font-size: 0.8em; color: #888; text-transform: uppercase; }
-        button { background: #222; color: var(--neon); border: 2px solid var(--neon); padding: 20px; width: 100%; font-weight: bold; font-size: 1.3em; border-radius: 18px; margin-top: 10px; }
-        input { background: #000; color: #fff; border: 1px solid var(--neon); padding: 15px; width: 85%; font-size: 1.1em; border-radius: 12px; margin-bottom: 15px; outline: none; }
-        #ai-response { background: #080808; padding: 20px; border-left: 5px solid var(--neon); text-align: left; font-size: 1.1em; line-height: 1.5; margin-top: 15px; border-radius: 0 15px 15px 0; }
-        #sys-log { font-size: 0.7em; color: #444; margin-top: 30px; text-align: left; font-family: monospace; border-top: 1px solid #222; padding-top: 10px; white-space: pre-wrap; }
+        :root { --neon: #0f0; --danger: #f00; --bg: #000; --card: #111; --gold: #ffd700; }
+        body { background: var(--bg); color: #fff; font-family: -apple-system, sans-serif; text-align: center; margin: 0; padding: 10px; }
+        .card { background: var(--card); border: 1px solid #333; border-radius: 20px; padding: 15px; margin-bottom: 10px; }
+        .huge { font-size: 3.2em; color: var(--neon); font-weight: 900; letter-spacing: -2px; }
+        .label { font-size: 0.7em; color: #888; text-transform: uppercase; letter-spacing: 1px; }
+        .strategy-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 10px; }
+        .plan-box { border: 1px solid #444; padding: 10px; border-radius: 10px; font-size: 0.8em; }
+        .plan-A { border-color: var(--gold); }
+        .req-pace { font-size: 1.4em; color: var(--neon); font-weight: bold; display: block; }
+        button { background: #222; color: var(--neon); border: 2px solid var(--neon); padding: 18px; width: 100%; font-weight: bold; font-size: 1.2em; border-radius: 15px; margin-top: 10px; }
+        .btn-update { background: var(--neon); color: #000; border: none; }
+        #ai-response { background: #080808; padding: 15px; border-left: 5px solid var(--neon); text-align: left; font-size: 0.95em; margin-top: 10px; border-radius: 0 15px 15px 0; }
+        #sys-log { font-size: 0.6em; color: #444; margin-top: 10px; }
     </style>
 </head>
 <body>
 
     <div id="setup-screen">
-        <h1 style="color: var(--neon)">ULTRA COMMAND</h1>
+        <h1 style="color: var(--neon)">ULTRA COMMAND 4.1</h1>
         <div id="key-section" class="card">
-            <p class="label">Gemini API Key Required (2026 Model)</p>
-            <input type="text" id="api-key-input" placeholder="Paste Key Here" autocomplete="off" autocapitalize="off" spellcheck="false">
+            <p class="label">Péter's Personal Vault</p>
+            <input type="text" id="api-key-input" style="background:#000;color:#fff;border:1px solid var(--neon);padding:10px;width:80%;" placeholder="Paste Gemini Key">
             <button onclick="saveKey()">ACTIVATE SYSTEM</button>
         </div>
         
         <div id="mode-selection" style="display:none;">
-            <p class="label">Select Mission</p>
-            <button onclick="startRace('linear')">NN ULTRABALATON</button>
-            <button onclick="startRace('loop')">OMSZKI 100K</button>
+            <p class="label">Select Race, Péter</p>
+            <button onclick="startRace('ub')">ULTRABALATON 211KM</button>
+            <button onclick="startRace('omszki')">OMSZKI 100K</button>
             <button onclick="startRace('backyard')">BACKYARD ULTRA</button>
-            <p onclick="clearKey()" style="color:#444; margin-top:40px; font-size:0.7em;">[ RESET API KEY ]</p>
+            <p onclick="clearKey()" style="color:#444; margin-top:30px; font-size:0.7em;">[ RESET KEY ]</p>
         </div>
     </div>
 
     <div id="main-dashboard" style="display:none;">
-        <h2 id="mode-display" style="color: var(--neon); letter-spacing: 3px;">ACTIVE</h2>
         <div class="card">
-            <span class="label">PROGRESS</span>
-            <div id="dist" class="huge">0</div>
-            <span id="unit-label" class="label">UNIT</span>
+            <span class="label">DISTANCE COVERED</span>
+            <div id="dist-display" class="huge">0.0</div>
+            <span class="label">KILOMETERS</span>
         </div>
-        <div class="card" id="pace-card">
-            <span class="label">LAP / KM PACE</span>
-            <div id="pace" class="huge">--:--</div>
+
+        <div class="card">
+            <span class="label">CURRENT AVG PACE</span>
+            <div id="avg-pace-display" style="font-size: 2em; color: var(--neon);">--:--</div>
+            <span id="elapsed-display" style="font-size: 0.8em; color: #666;">Elapsed: 00:00:00</span>
         </div>
-        <div class="card" id="backyard-card" style="display:none;">
-            <span class="label">REST REMAINING</span>
-            <div id="backyard-timer" class="huge" style="color: var(--danger)">60:00</div>
+
+        <div class="card">
+            <span class="label">PACE NEEDED TO FINISH</span>
+            <div class="strategy-grid">
+                <div class="plan-box plan-A"><span class="label">Plan A (24h)</span><span class="req-pace" id="req-A">--:--</span></div>
+                <div class="plan-box"><span class="label">Plan B (27h)</span><span class="req-pace" id="req-B">--:--</span></div>
+                <div class="plan-box"><span class="label">Plan C (31h)</span><span class="req-pace" id="req-C">--:--</span></div>
+            </div>
         </div>
-        <button onclick="logProgress()">MARK PROGRESS</button>
-        <div id="ai-response">SYSTEM READY</div>
-        <button onclick="askAI('crisis')" style="background:var(--danger); color:white; border:none; margin-top:20px;">GOGGINS / HELP</button>
+
+        <button class="btn-update" onclick="updateLocation()">REFRESH DATA & SNAPSHOT</button>
+        <button style="background:var(--danger); color:white; border:none; margin-top:10px; padding: 10px;" onclick="askAI('crisis')">HELP ME / GOGGINS</button>
+        
+        <div id="ai-response">READY PÉTER.</div>
+        <div id="sys-log">System: Monitoring start time...</div>
     </div>
 
-    <div id="sys-log">Log: v2.6 Ready (Jan 2026 Edition)</div>
-
     <script>
-        const sysLog = (m) => { document.getElementById('sys-log').innerText += "\n> " + m; };
-        let raceMode = ''; let count = 0; let lastTime = new Date(); let bySec = 3600;
+        const RACE_START = new Date("2026-04-24T07:00:00");
+        const TOTAL_DIST = 211;
+        let raceMode = '';
+        let currentKm = 0;
+
+        // Coordinates based on official course
+        const landmarks = [
+            {km: 0, lat: 46.950, lon: 17.876, name: "Balatonfüred Start"},
+            {km: 11.7, lat: 46.918, lon: 17.812, name: "Aszófő / Fövenyes"},
+            {km: 40.1, lat: 46.815, lon: 17.558, name: "Badacsonyörs (Varga)"},
+            {km: 73.6, lat: 46.767, lon: 17.248, name: "Keszthely"},
+            {km: 106.2, lat: 46.748, lon: 17.406, name: "Fonyód"},
+            {km: 135.1, lat: 46.852, lon: 17.848, name: "Balatonföldvár"},
+            {km: 161.4, lat: 46.918, lon: 18.066, name: "Siófok"},
+            {km: 176.4, lat: 47.032, lon: 18.261, name: "Balatonkenese"},
+            {km: 211.0, lat: 46.950, lon: 17.876, name: "Füred Finish"}
+        ];
 
         window.onload = () => {
-            const k = localStorage.getItem('ultra_key');
-            if(k) {
+            if(localStorage.getItem('ultra_key_peter')) {
                 document.getElementById('key-section').style.display = 'none';
                 document.getElementById('mode-selection').style.display = 'block';
             }
@@ -72,92 +96,105 @@
 
         function saveKey() {
             const k = document.getElementById('api-key-input').value.trim();
-            if(k.length < 30) { alert("Invalid Key"); return; }
-            localStorage.setItem('ultra_key', k);
+            if(k.length < 20) return;
+            localStorage.setItem('ultra_key_peter', k);
             location.reload();
         }
 
-        function clearKey() { localStorage.removeItem('ultra_key'); location.reload(); }
+        function clearKey() { localStorage.removeItem('ultra_key_peter'); location.reload(); }
 
         function startRace(m) {
             raceMode = m;
             document.getElementById('setup-screen').style.display = 'none';
             document.getElementById('main-dashboard').style.display = 'block';
-            document.getElementById('mode-display').innerText = m.toUpperCase();
-            if(m === 'backyard') {
-                document.getElementById('backyard-card').style.display = 'block';
-                document.getElementById('pace-card').style.display = 'none';
-                document.getElementById('unit-label').innerText = "LAPS";
-                setInterval(() => {
-                    bySec--; if(bySec < 0) bySec = 3599;
-                    let mins = Math.floor(bySec / 60); let secs = bySec % 60;
-                    document.getElementById('backyard-timer').innerText = `${mins}:${secs < 10 ? '0'+secs : secs}`;
-                }, 1000);
-            }
-            speak("System online.");
+            updateLocation();
+            speak("Strategic monitoring active, Péter. Good luck.");
         }
 
-        function logProgress() {
-            count++;
-            let now = new Date();
-            let diff = (now - lastTime) / 1000 / 60;
-            lastTime = now;
-            document.getElementById('dist').innerText = count;
-            if(raceMode !== 'backyard') {
-                let m = Math.floor(diff); let s = Math.round((diff - m) * 60);
-                document.getElementById('pace').innerText = `${m}:${s < 10 ? '0'+s : s}`;
-            } else {
-                bySec = 3600;
+        function updateLocation() {
+            navigator.geolocation.getCurrentPosition((pos) => {
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                
+                // Find closest landmark
+                let closest = landmarks[0];
+                let minDist = 9999;
+                landmarks.forEach(p => {
+                    let d = Math.sqrt(Math.pow(lat - p.lat, 2) + Math.pow(lon - p.lon, 2));
+                    if(d < minDist) { minDist = d; closest = p; }
+                });
+
+                currentKm = closest.km;
+                document.getElementById('dist-display').innerText = currentKm.toFixed(1);
+                calculateStrategy();
+                speak(`You are near ${closest.name}. ${currentKm} kilometers covered.`);
+            });
+        }
+
+        function calculateStrategy() {
+            const now = new Date();
+            const elapsedMs = now - RACE_START;
+            const elapsedHrs = elapsedMs / (1000 * 60 * 60);
+            const remainingKm = TOTAL_DIST - currentKm;
+
+            // Elapsed Clock
+            const h = Math.floor(elapsedHrs);
+            const m = Math.floor((elapsedHrs - h) * 60);
+            document.getElementById('elapsed-display').innerText = `Elapsed Time: ${h}h ${m}m`;
+
+            // Current Pace (min/km)
+            if (currentKm > 0) {
+                const totalMins = elapsedHrs * 60;
+                const avgPace = totalMins / currentKm;
+                document.getElementById('avg-pace-display').innerText = formatPace(avgPace);
             }
-            speak(count + " done.");
+
+            // Required Paces
+            document.getElementById('req-A').innerText = calcReqPace(24, elapsedHrs, remainingKm);
+            document.getElementById('req-B').innerText = calcReqPace(27, elapsedHrs, remainingKm);
+            document.getElementById('req-C').innerText = calcReqPace(31, elapsedHrs, remainingKm);
+        }
+
+        function calcReqPace(targetHrs, elapsedHrs, remainingKm) {
+            const remainingHrs = targetHrs - elapsedHrs;
+            if (remainingHrs <= 0) return "LOST";
+            const reqPace = (remainingHrs * 60) / remainingKm;
+            return formatPace(reqPace);
+        }
+
+        function formatPace(mins) {
+            if (mins > 20) return "WALK";
+            const m = Math.floor(mins);
+            const s = Math.round((mins - m) * 60);
+            return `${m}:${s < 10 ? '0'+s : s}`;
         }
 
         async function askAI(ctx) {
-            const key = localStorage.getItem('ultra_key');
+            const key = localStorage.getItem('ultra_key_peter');
             const resp = document.getElementById('ai-response');
-            resp.innerText = "TRANSMITTING...";
+            resp.innerText = "COMMAND IS ANALYZING...";
             
-            // 2026 Model IDs
-            const models = ["gemini-2.5-flash", "gemini-3-flash-preview"];
-            let success = false;
+            const elapsed = document.getElementById('elapsed-display').innerText;
+            const avgPace = document.getElementById('avg-pace-display').innerText;
+            const prompt = `I am Péter. I am at km ${currentKm} of Ultrabalaton. ${elapsed}. My avg pace is ${avgPace}. I'm struggling. Give tactical ultra advice and a ruthless Goggins quote using my name. Max 45 words.`;
 
-            for (let modelName of models) {
-                if (success) break;
-                
-                const url = `https://generativelanguage.googleapis.com/v1/models/${modelName}:generateContent?key=${key}`;
-                const prompt = `I am Peter running ${raceMode}. km/lap: ${count}. Give 1 tactical ultra advice and a David Goggins quote. Max 40 words.`;
-
-                try {
-                    const r = await fetch(url, {
-                        method: "POST",
-                        headers: {"Content-Type": "application/json"},
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const d = await r.json();
-                    
-                    if(r.ok) {
-                        const txt = d.candidates[0].content.parts[0].text;
-                        resp.innerText = txt;
-                        speak(txt);
-                        success = true;
-                        sysLog("Success with " + modelName);
-                    } else {
-                        sysLog(modelName + " Failed: " + d.error.message);
-                    }
-                } catch (e) {
-                    sysLog("Fetch Error for " + modelName);
-                }
-            }
-
-            if (!success) {
-                resp.innerText = "All models failed. Check your API Key at Google AI Studio.";
-            }
+            try {
+                const r = await fetch(`https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${key}`, {
+                    method: "POST",
+                    headers: {"Content-Type": "application/json"},
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+                const d = await r.json();
+                const txt = d.candidates[0].content.parts[0].text;
+                resp.innerText = txt;
+                speak(txt);
+            } catch (e) { resp.innerText = "Connection lost. Keep moving, Péter!"; }
         }
 
         function speak(t) {
             window.speechSynthesis.cancel();
             const m = new SpeechSynthesisUtterance(t);
-            m.lang = 'en-US'; m.rate = 0.9;
+            m.lang = 'en-US'; m.rate = 0.95;
             window.speechSynthesis.speak(m);
         }
     </script>
